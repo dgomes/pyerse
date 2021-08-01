@@ -1,4 +1,4 @@
-"""Informação por comercializador"""
+"""Informação por comercializador."""
 import logging
 from enum import Enum
 from datetime import datetime
@@ -7,7 +7,7 @@ from pyerse.ciclos import Ciclo, Ciclo_Diario, Ciclo_Semanal
 
 
 class Opcao_Horaria(Enum):
-    """Ciclos de contagem"""
+    """Ciclos de contagem."""
 
     SIMPLES = "Simples"
     BI_HORARIA = "Bi-Horária"
@@ -15,7 +15,7 @@ class Opcao_Horaria(Enum):
 
 
 class Tarifa(Enum):
-    """Tarifas"""
+    """Tarifas."""
 
     PONTA = "Ponta"
     CHEIAS = "Cheias"
@@ -48,24 +48,33 @@ IMPOSTO_ESPECIAL_CONSUMO = 0.001
 CONTRIB_AUDIOVISUAL = 2.85
 TAXA_DGEG = 0.07
 
+
 class PlanoException(Exception):
-    pass
+    """Exceptions lançadas por Plano."""
+
 
 class Plano:
-    def __init__(self, potencia: float, opcao_horaria: Opcao_Horaria, ciclo: Ciclo = None):
+    """Plano de Energia."""
+
+    def __init__(
+        self, potencia: float, opcao_horaria: Opcao_Horaria, ciclo: Ciclo = None
+    ):
+        """Inicialização do Plano."""
         self._potencia = potencia if potencia in POTENCIA else None
         self._opcao_horaria = opcao_horaria
-        if opcao_horaria != Opcao_Horaria.SIMPLES and ciclo == None:
+        if opcao_horaria != Opcao_Horaria.SIMPLES and ciclo is None:
             raise PlanoException("Ciclo não definido")
 
         self._ciclo = ciclo
         self._custo = {}
 
     def __str__(self):
+        """Representação textual do plano."""
         return f"{self._potencia} kVA - {self._opcao_horaria} {self._ciclo if self._ciclo else ''}"
 
     @property
     def tarifa_actual(self):
+        """Tarifa actual."""
         now = datetime.now()
 
         if self._opcao_horaria == Opcao_Horaria.SIMPLES:
@@ -90,15 +99,21 @@ class Plano:
                 return Tarifa.CHEIAS
 
     def definir_custo_kWh(self, tarifa: Tarifa, custo: float):
+        """Configura o custo em Euros por kWh da tarifa."""
         self._custo[tarifa] = custo
-    
+
     def definir_custo_potencia(self, custo: float):
+        """Configura o custo em Euros por dia da potencia instalada."""
         self._custo[self._potencia] = custo
 
-    def custo_kWh_actual(self, kwh_consumidos: float, familia_numerosa = False):
-        """Custo com IVA com base em https://www.erse.pt/media/pzievesl/ersexplica_aplicação-do-iva.pdf"""
+    def custo_kWh_actual(self, kwh_consumidos: float, familia_numerosa=False):
+        """
+        Custo com IVA do kWh na tarifa do momento.
+
+        Ver https://www.erse.pt/media/pzievesl/ersexplica_aplicação-do-iva.pdf
+        """
         tarifa_actual = self.tarifa_actual
-        
+
         try:
             custo_kwh = self._custo[tarifa_actual]
         except KeyError:
@@ -106,13 +121,12 @@ class Plano:
 
         if self._potencia > 6.9:
             return custo_kwh * IVA_NORMAL
-        
+
         def desconto(plafond):
             if kwh_consumidos > plafond:
                 return custo_kwh * IVA_NORMAL
             else:
                 return custo_kwh * IVA_INTERMEDIA
-
 
         if self._opcao_horaria == Opcao_Horaria.SIMPLES:
             return desconto(150 if familia_numerosa else 100)
@@ -131,15 +145,18 @@ class Plano:
             elif tarifa_actual == Tarifa.VAZIO:
                 return desconto(60 if familia_numerosa else 40)
 
-    def custo_kWh(self, tarifa: Tarifa, kwh_consumidos: float, familia_numerosa = False):
+    def custo_kWh(self, tarifa: Tarifa, kwh_consumidos: float, familia_numerosa=False):
+        """Custo em Euros dos kWh consumidos na tarifa."""
         try:
             custo_kwh = self._custo[tarifa]
         except KeyError:
-            raise PlanoException(f"Sem valor de custo para {tarifa}")        
+            raise PlanoException(f"Sem valor de custo para {tarifa}")
 
         def desconto(plafond):
             if kwh_consumidos > plafond:
-                return round(plafond * custo_kwh * IVA_INTERMEDIA, 2) + round((kwh_consumidos-plafond) * custo_kwh * IVA_NORMAL, 2)
+                return round(plafond * custo_kwh * IVA_INTERMEDIA, 2) + round(
+                    (kwh_consumidos - plafond) * custo_kwh * IVA_NORMAL, 2
+                )
             else:
                 return round(kwh_consumidos * custo_kwh * IVA_INTERMEDIA, 2)
 
@@ -161,30 +178,55 @@ class Plano:
                 return desconto(60 if familia_numerosa else 40)
 
     def custos_fixos(self, dias: int, kwh_consumidos: float):
+        """Custos fixos em Euros."""
         if self._potencia <= 3.45:
-            logging.warning("Potencia inferior a 3.45 com desconto sobre o valor total da potencia!")
-        custo_potencia = dias * self._custo[self._potencia] * (IVA_REDUZIDA if self._potencia <= 3.45 else IVA_NORMAL)
-        imposto_especial_consumo = kwh_consumidos * IMPOSTO_ESPECIAL_CONSUMO * IVA_NORMAL
+            logging.warning(
+                "Potencia inferior a 3.45 com desconto sobre o valor total da potencia!"
+            )
+        custo_potencia = (
+            dias
+            * self._custo[self._potencia]
+            * (IVA_REDUZIDA if self._potencia <= 3.45 else IVA_NORMAL)
+        )
+        imposto_especial_consumo = (
+            kwh_consumidos * IMPOSTO_ESPECIAL_CONSUMO * IVA_NORMAL
+        )
 
-        return round(custo_potencia, 2) + round(imposto_especial_consumo, 2) + round(CONTRIB_AUDIOVISUAL*IVA_REDUZIDA, 2) + round(TAXA_DGEG*IVA_NORMAL, 2)
+        return (
+            round(custo_potencia, 2)
+            + round(imposto_especial_consumo, 2)
+            + round(CONTRIB_AUDIOVISUAL * IVA_REDUZIDA, 2)
+            + round(TAXA_DGEG * IVA_NORMAL, 2)
+        )
+
 
 class Comercializador:
+    """Representação de um Comercializador."""
+
     def __init__(self, potencia, horario: Opcao_Horaria, ciclo: Ciclo = None):
+        """Configuração de um plano para o comercializador."""
         self._plano = Plano(potencia, horario, ciclo)
 
     @classmethod
     def potencias(cls):
+        """Potencias disponiveis."""
         return POTENCIA
 
     @classmethod
     def opcao_horaria(cls):
-        return [Opcao_Horaria.SIMPLES, Opcao_Horaria.BI_HORARIA, Opcao_Horaria.TRI_HORARIA]
+        """Opções horárias."""
+        return [
+            Opcao_Horaria.SIMPLES,
+            Opcao_Horaria.BI_HORARIA,
+            Opcao_Horaria.TRI_HORARIA,
+        ]
 
     @classmethod
     def opcao_ciclo(cls):
+        """Opções de ciclo para opção bi-horaria ou tri-horaria."""
         return [Ciclo_Diario, Ciclo_Semanal]
 
     @property
     def plano(self):
+        """Plano do comercializador."""
         return self._plano
-

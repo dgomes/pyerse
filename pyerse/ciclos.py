@@ -38,6 +38,7 @@ class Ciclo:
 
 class Ciclo_Semanal(Ciclo):
     """Ciclo semanal continente (os períodos horários diferem entre dias úteis e fim de semana)."""
+
     def __str__(self):
         return "Ciclo Semanal"
 
@@ -129,6 +130,7 @@ class Ciclo_Semanal(Ciclo):
 
 class Ciclo_Diario(Ciclo):
     """Ciclo diário continente (os períodos horários são iguais em todos os dias do ano) """
+
     def __str__(self):
         return "Ciclo Semanal"
 
