@@ -3,10 +3,10 @@ import logging
 from enum import Enum
 from datetime import datetime
 from pyerse.periodos_horarios import Periodos_Horarios
-from pyerse.ciclos import Ciclo, Ciclo_Diario, Ciclo_Semanal
+from pyerse.ciclos import Ciclo, Ciclo_Diario, Ciclo_Semanal, MAPPING as CYCLE_MAPPING
 
 
-class Opcao_Horaria(Enum):
+class Opcao_Horaria(str, Enum):
     """Ciclos de contagem."""
 
     SIMPLES = "Simples"
@@ -14,7 +14,7 @@ class Opcao_Horaria(Enum):
     TRI_HORARIA = "Tri-Horária"
 
 
-class Tarifa(Enum):
+class Tarifa(str, Enum):
     """Tarifas."""
 
     PONTA = "Ponta"
@@ -65,12 +65,24 @@ class Plano:
         if opcao_horaria != Opcao_Horaria.SIMPLES and ciclo is None:
             raise PlanoException("Ciclo não definido")
 
+        if ciclo and ciclo not in [Ciclo_Diario, Ciclo_Semanal]:
+            ciclo = CYCLE_MAPPING[ciclo]
         self._ciclo = ciclo
         self._custo = {}
 
     def __str__(self):
         """Representação textual do plano."""
-        return f"{self._potencia} kVA - {self._opcao_horaria} {self._ciclo if self._ciclo else ''}"
+        return f"{self._potencia} kVA - {self._opcao_horaria} {self._ciclo() if self._ciclo else ''}"
+
+    @property
+    def tarifas(self):
+        """Tarifas disponiveis para o plano."""
+        if self._opcao_horaria == Opcao_Horaria.SIMPLES:
+            return [Tarifa.NORMAL]
+        elif self._opcao_horaria == Opcao_Horaria.BI_HORARIA:
+            return [Tarifa.VAZIO, Tarifa.FORA_DE_VAZIO]
+        elif self._opcao_horaria == Opcao_Horaria.TRI_HORARIA:
+            return [Tarifa.VAZIO, Tarifa.CHEIAS, Tarifa.PONTA]
 
     @property
     def tarifa_actual(self):
@@ -203,9 +215,14 @@ class Plano:
 class Comercializador:
     """Representação de um Comercializador."""
 
-    def __init__(self, potencia, horario: Opcao_Horaria, ciclo: Ciclo = None):
+    def __init__(self, nome: str, potencia: float, horario: Opcao_Horaria, ciclo: str = None):
         """Configuração de um plano para o comercializador."""
-        self._plano = Plano(potencia, horario, ciclo)
+        self._name = nome
+        self._plano = Plano(potencia, horario, CYCLE_MAPPING[ciclo])
+
+    def __str__(self) -> str:
+        """Nome do operador e respectivo plano."""
+        return f"{self._name} - {self._plano}"
 
     @classmethod
     def potencias(cls):
@@ -224,7 +241,7 @@ class Comercializador:
     @classmethod
     def opcao_ciclo(cls):
         """Opções de ciclo para opção bi-horaria ou tri-horaria."""
-        return [Ciclo_Diario, Ciclo_Semanal]
+        return CYCLE_MAPPING.keys()
 
     @property
     def plano(self):

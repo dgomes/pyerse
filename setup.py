@@ -4,7 +4,7 @@ version = open('VERSION').read().strip()
 license = open('LICENSE').read().strip()
 
 setup(
-    name = 'python-package-boilerplate',
+    name = 'pyerse',
     version = version,
     license = license,
     author = 'Diogo Gomes',

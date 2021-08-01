@@ -39,7 +39,7 @@ class Ciclo:
 class Ciclo_Semanal(Ciclo):
     """Ciclo semanal continente (os períodos horários diferem entre dias úteis e fim de semana)."""
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Ciclo Semanal"
 
     @classmethod
@@ -131,8 +131,8 @@ class Ciclo_Semanal(Ciclo):
 class Ciclo_Diario(Ciclo):
     """Ciclo diário continente (os períodos horários são iguais em todos os dias do ano) """
 
-    def __str__(self):
-        return "Ciclo Semanal"
+    def __str__(self) -> str:
+        return "Ciclo Diário"
 
     @classmethod
     def get_periodo_horario(cls, time):
@@ -176,3 +176,9 @@ class Ciclo_Diario(Ciclo):
                 return ph.VAZIO_NORMAL
             if cls.in_time_range(2, 0, time, 6, 0):
                 return ph.SUPER_VAZIO
+
+
+MAPPING = {
+    str(Ciclo_Semanal()): Ciclo_Semanal,
+    str(Ciclo_Diario()): Ciclo_Diario
+}
