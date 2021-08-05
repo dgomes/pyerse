@@ -1,3 +1,5 @@
+from freezegun import freeze_time
+
 from pyerse.ciclos import Ciclo, Ciclo_Semanal
 from pyerse.comercializador import Plano, Opcao_Horaria, PlanoException, Tarifa
 
@@ -15,6 +17,7 @@ def test_custo_simples():
     assert round(p.custo_kWh_actual(0), 3) == 0.113
 
 
+@freeze_time("2021-08-04 00:00:00")
 def test_custo_bi_horario():
     p = Plano(6.9, Opcao_Horaria.BI_HORARIA, Ciclo_Semanal)
     p.definir_custo_kWh(Tarifa.VAZIO, 0.100)

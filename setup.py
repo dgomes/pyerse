@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 version = open('VERSION').read().strip()
-license = open('LICENSE').read().strip()
+license='MIT License'
 
 setup(
     name = 'pyerse',
@@ -11,7 +11,8 @@ setup(
     author_email = 'diogogomes@gmail.com',
     url = 'http://github.com/dgomes/pyerse',
     description = 'Provides algorithms and an API for Portugal Energy Regulator (ERSE)',
-    long_description = open('README.md').read().strip(),
+    long_description_content_type='text/markdown',
+    long_description = open('README.md').read(),
     packages = find_packages(),
     install_requires=[
         # put packages here
