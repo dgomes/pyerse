@@ -84,10 +84,10 @@ class Plano:
         elif self._opcao_horaria == Opcao_Horaria.TRI_HORARIA:
             return [Tarifa.VAZIO, Tarifa.CHEIAS, Tarifa.PONTA]
 
-    @property
-    def tarifa_actual(self):
+    def tarifa_actual(self, now=None):
         """Tarifa actual."""
-        now = datetime.now()
+        if now is None:
+            now = datetime.now()
 
         if self._opcao_horaria == Opcao_Horaria.SIMPLES:
             return Tarifa.NORMAL
@@ -118,13 +118,19 @@ class Plano:
         """Configura o custo em Euros por dia da potencia instalada."""
         self._custo[self._potencia] = custo
 
+    def custo_tarifa(self, tarifa: Tarifa):
+        return self._cost.get(tarifa, 0)  # TODO exception
+
+    def custo_potencia(self):
+        return self._cost[self._potencia]
+
     def custo_kWh_actual(self, kwh_consumidos: float, familia_numerosa=False):
         """
         Custo com IVA do kWh na tarifa do momento.
 
         Ver https://www.erse.pt/media/pzievesl/ersexplica_aplicação-do-iva.pdf
         """
-        tarifa_actual = self.tarifa_actual
+        tarifa_actual = self.tarifa_actual()
 
         try:
             custo_kwh = self._custo[tarifa_actual]
@@ -189,7 +195,15 @@ class Plano:
             elif tarifa == Tarifa.VAZIO:
                 return desconto(60 if familia_numerosa else 40)
 
-    def custos_fixos(self, dias: int, kwh_consumidos: float):
+    def custo_kWh_final(
+        self, tarifa: Tarifa, kwh_consumidos: float, familia_numerosa=False
+    ):
+        return (
+            self.custo_kWh(tarifa, kwh_consumidos, familia_numerosa)
+            + kwh_consumidos * IMPOSTO_ESPECIAL_CONSUMO * IVA_NORMAL
+        )
+
+    def custos_fixos(self, dias: int):
         """Custos fixos em Euros."""
         if self._potencia <= 3.45:
             logging.warning(
@@ -200,13 +214,9 @@ class Plano:
             * self._custo[self._potencia]
             * (IVA_REDUZIDA if self._potencia <= 3.45 else IVA_NORMAL)
         )
-        imposto_especial_consumo = (
-            kwh_consumidos * IMPOSTO_ESPECIAL_CONSUMO * IVA_NORMAL
-        )
 
         return (
             round(custo_potencia, 2)
-            + round(imposto_especial_consumo, 2)
             + round(CONTRIB_AUDIOVISUAL * IVA_REDUZIDA, 2)
             + round(TAXA_DGEG * IVA_NORMAL, 2)
         )
@@ -215,7 +225,9 @@ class Plano:
 class Comercializador:
     """Representação de um Comercializador."""
 
-    def __init__(self, nome: str, potencia: float, horario: Opcao_Horaria, ciclo: str = None):
+    def __init__(
+        self, nome: str, potencia: float, horario: Opcao_Horaria, ciclo: str = None
+    ):
         """Configuração de um plano para o comercializador."""
         self._name = nome
         self._plano = Plano(potencia, horario, CYCLE_MAPPING[ciclo])

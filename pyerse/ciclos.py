@@ -178,7 +178,4 @@ class Ciclo_Diario(Ciclo):
                 return ph.SUPER_VAZIO
 
 
-MAPPING = {
-    str(Ciclo_Semanal()): Ciclo_Semanal,
-    str(Ciclo_Diario()): Ciclo_Diario
-}
+MAPPING = {str(Ciclo_Semanal()): Ciclo_Semanal, str(Ciclo_Diario()): Ciclo_Diario}

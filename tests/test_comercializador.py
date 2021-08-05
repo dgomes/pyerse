@@ -10,7 +10,7 @@ def test_custo_simples():
     p = Plano(6.9, Opcao_Horaria.SIMPLES)
     p.definir_custo_kWh(Tarifa.NORMAL, 0.100)
 
-    assert p.tarifa_actual == Tarifa.NORMAL
+    assert p.tarifa_actual() == Tarifa.NORMAL
 
     assert round(p.custo_kWh_actual(0), 3) == 0.113
 
@@ -19,7 +19,7 @@ def test_custo_bi_horario():
     p = Plano(6.9, Opcao_Horaria.BI_HORARIA, Ciclo_Semanal)
     p.definir_custo_kWh(Tarifa.VAZIO, 0.100)
 
-    assert p.tarifa_actual == Tarifa.VAZIO
+    assert p.tarifa_actual() == Tarifa.VAZIO
 
     assert round(p.custo_kWh_actual(0), 3) == 0.113
 
@@ -34,7 +34,7 @@ def test_custo_exemplo_1():
     p.definir_custo_potencia(0.1660)
 
     assert compare_euro(p.custo_kWh(Tarifa.NORMAL, 160), 16.79 + 10.97)
-    assert compare_euro(p.custos_fixos(30, 160), 5.28 + 0.20 + 3.02 + 0.09)
+    assert compare_euro(p.custos_fixos(30), 5.28 + 3.02 + 0.09)
 
 
 def test_custo_exemplo_2():
@@ -46,7 +46,7 @@ def test_custo_exemplo_2():
     assert compare_euro(p.custo_kWh(Tarifa.FORA_DE_VAZIO, 170), 12.31 + 24.56)
     assert compare_euro(p.custo_kWh(Tarifa.VAZIO, 80), 4.33 + 4.71)
 
-    assert compare_euro(p.custos_fixos(30, 250), 10.92 + 0.69 + 0.31 + 3.02 + 0.09)
+    assert compare_euro(p.custos_fixos(30), 10.92 + 0.69 + 3.02 + 0.09)
 
 
 def test_custo_exemplo_3():
@@ -61,4 +61,4 @@ def test_custo_exemplo_3():
     assert compare_euro(
         p.custo_kWh(Tarifa.VAZIO, 80, familia_numerosa=True), 6.50 + 2.36
     )
-    assert compare_euro(p.custos_fixos(30, 250), 10.92 + 0.69 + 0.31 + 3.02 + 0.09)
+    assert compare_euro(p.custos_fixos(30), 10.92 + 0.69 + 3.02 + 0.09)
