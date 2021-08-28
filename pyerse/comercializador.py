@@ -75,6 +75,10 @@ class Plano:
         return f"{self._potencia} kVA - {self._opcao_horaria} {self._ciclo() if self._ciclo else ''}"
 
     @property
+    def potencia(self):
+        return self._potencia
+
+    @property
     def tarifas(self):
         """Tarifas disponiveis para o plano."""
         if self._opcao_horaria == Opcao_Horaria.SIMPLES:
