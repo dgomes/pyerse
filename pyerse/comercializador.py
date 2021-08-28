@@ -119,10 +119,10 @@ class Plano:
         self._custo[self._potencia] = custo
 
     def custo_tarifa(self, tarifa: Tarifa):
-        return self._cost.get(tarifa, 0)  # TODO exception
+        return self._custo.get(tarifa, 0)  # TODO exception
 
     def custo_potencia(self):
-        return self._cost[self._potencia]
+        return self._custo[self._potencia]
 
     def custo_kWh_actual(self, kwh_consumidos: float, familia_numerosa=False):
         """
