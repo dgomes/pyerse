@@ -176,6 +176,69 @@ class Ciclo_Diario(Ciclo):
                 return ph.VAZIO_NORMAL
             if cls.in_time_range(2, 0, time, 6, 0):
                 return ph.SUPER_VAZIO
+            
+class Ciclo_Semanal_Acores(Ciclo):
+    """Ciclo semanal Açores (os períodos horários diferem entre dias úteis e fim de semana)."""
 
+    def __str__(self) -> str:
+        return "Ciclo Semanal Açores"
 
-MAPPING = {str(Ciclo_Semanal()): Ciclo_Semanal, str(Ciclo_Diario()): Ciclo_Diario}
+    @classmethod
+    def get_periodo_horario(cls, time):
+        if cls.is_summer(time):
+            # Verão (Vazio 24h-7h | Ponta 10h30-15h30)
+            if 0 <= time.weekday() < 5:
+                # Seg a Sex
+                if cls.in_time_range(10, 30, time, 15, 30):
+                    return ph.PONTA
+                if cls.in_time_range(7, 0, time, 10, 30) or cls.in_time_range(
+                    15, 30, time, 0, 0
+                ):
+                    return ph.CHEIAS
+                if cls.in_time_range(0, 0, time, 7, 0)
+                    return ph.VAZIO_NORMAL
+            if time.weekday() == 5:
+                # Sabado (Vazio 23h-7h e 14h30-19h30)
+                if cls.in_time_range(11, 0, time, 14, 30) or cls.in_time_range(
+                    19, 30, time, 23, 0
+                ):
+                    return ph.CHEIAS
+                if (
+                    cls.in_time_range(23, 0, time, 11, 0)
+                    or cls.in_time_range(14, 30, time, 19, 30)
+                ):
+                    return ph.VAZIO_NORMAL
+            if time.weekday() == 6:
+                # Domingo (Vazio 24h)
+                if cls.in_time_range(0, 0, time, 0, 0)
+                    return ph.VAZIO_NORMAL
+        else:
+            # Inverno
+            if 0 <= time.weekday() < 5:
+                # Seg a Sex (vazio 00h-7h | Ponta 18h30-21h30)
+                if cls.in_time_range(18, 30, time, 21, 30)
+                    return ph.PONTA
+                if (
+                    cls.in_time_range(7, 0, time, 18, 30)
+                    or cls.in_time_range(21, 30, time, 0, 0)
+                ):
+                    return ph.CHEIAS
+                if cls.in_time_range(0, 0, time, 7, 0)
+                    return ph.VAZIO_NORMAL
+            if time.weekday() == 5:
+                # Sabado (Vazio 23h-11h30 e 13h30-18h)
+                if cls.in_time_range(11, 30, time, 13, 30) or cls.in_time_range(
+                    18, 0, time, 23, 0
+                ):
+                    return ph.CHEIAS
+                if (
+                    cls.in_time_range(23, 0, time, 11, 30)
+                    or cls.in_time_range(13, 30, time, 18, 0)
+                ):
+                    return ph.VAZIO_NORMAL
+            if time.weekday() == 6:
+                # Domingo (Vazio 24h)
+                if cls.in_time_range(0, 0, time, 0, 0)
+                    return ph.VAZIO_NORMAL
+
+MAPPING = {str(Ciclo_Semanal()): Ciclo_Semanal, str(Ciclo_Diario()): Ciclo_Diario, str(Ciclo_Semanal_Acores()): Ciclo_Semanal_Acores}
