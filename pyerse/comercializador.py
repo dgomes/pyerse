@@ -3,7 +3,7 @@ import logging
 from enum import Enum
 from datetime import datetime
 from pyerse.periodos_horarios import Periodos_Horarios
-from pyerse.ciclos import Ciclo, Ciclo_Diario, Ciclo_Semanal, MAPPING as CYCLE_MAPPING
+from pyerse.ciclos import Ciclo, Ciclo_Diario, Ciclo_Semanal, Ciclo_Semanal_Acores, MAPPING as CYCLE_MAPPING
 
 
 class Opcao_Horaria(str, Enum):
@@ -65,7 +65,7 @@ class Plano:
         if opcao_horaria != Opcao_Horaria.SIMPLES and ciclo is None:
             raise PlanoException("Ciclo não definido")
 
-        if ciclo and ciclo not in [Ciclo_Diario, Ciclo_Semanal]:
+        if ciclo and ciclo not in [Ciclo_Diario, Ciclo_Semanal, Ciclo_Semanal_Acores]:
             ciclo = CYCLE_MAPPING[ciclo]
         self._ciclo = ciclo
         self._custo = {}
