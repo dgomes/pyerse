@@ -1,7 +1,48 @@
+import pytest 
+from datetime import time, datetime
 from freezegun import freeze_time
 
 from pyerse.ciclos import Ciclo, Ciclo_Semanal
 from pyerse.comercializador import Plano, Opcao_Horaria, PlanoException, Tarifa
+
+@pytest.mark.parametrize("frozen_time, expected_tarifa, expected_intervalo", [
+    ("2025-03-23 00:05:00", Tarifa.VAZIO, (time(0, 0), time(2, 0))),
+    ("2025-03-23 15:15:00", Tarifa.VAZIO, (time(6, 0), time(0, 0))),
+    ("2025-03-22 12:15:00", Tarifa.FORA_DE_VAZIO, (time(9, 30), time(13, 0))),
+    ("2025-03-24 20:00:00", Tarifa.FORA_DE_VAZIO, (time(18, 30), time(21, 0)))
+])
+def test_intervalo_bi_horario_semanal(frozen_time, expected_tarifa, expected_intervalo):
+    with freeze_time(frozen_time):
+        p = Plano(6.9, Opcao_Horaria.BI_HORARIA, Ciclo_Semanal)
+
+        assert p.tarifa_actual() == expected_tarifa
+        assert p.tarifa_actual_intervalo() == expected_intervalo
+
+@pytest.mark.parametrize("frozen_time, expected_tarifa, expected_intervalo", [
+    ("2025-03-23 00:05:00", Tarifa.VAZIO, (time(0, 0), time(2, 0))),
+    ("2025-03-23 15:15:00", Tarifa.VAZIO, (time(6, 0), time(0, 0))),
+    ("2025-03-22 12:15:00", Tarifa.CHEIAS, (time(9, 30), time(13, 0))),
+    ("2025-03-24 20:00:00", Tarifa.PONTA, (time(18, 30), time(21, 0)))
+])
+def test_intervalo_bi_horario_semanal(frozen_time, expected_tarifa, expected_intervalo):
+    with freeze_time(frozen_time):
+        p = Plano(6.9, Opcao_Horaria.TRI_HORARIA, Ciclo_Semanal)
+
+        assert p.tarifa_actual() == expected_tarifa
+        assert p.tarifa_actual_intervalo() == expected_intervalo
+
+@pytest.mark.parametrize("frozen_time, expected_tarifa, expected_intervalo, expected_new_tarifa", [
+    ("2025-03-24 00:05:00", Tarifa.VAZIO, (datetime(2025, 3, 24, 7, 0), datetime(2025, 3, 25, 0, 0)), Tarifa.FORA_DE_VAZIO),
+    ("2025-03-24 15:15:00", Tarifa.FORA_DE_VAZIO, (datetime(2025, 3, 25, 0, 0), datetime(2025, 3, 25, 7, 0)), Tarifa.VAZIO),
+])
+def test_tarifa_proximo_intervalo_bi_horario(frozen_time, expected_tarifa, expected_intervalo, expected_new_tarifa):
+    with freeze_time(frozen_time):
+        p = Plano(6.9, Opcao_Horaria.BI_HORARIA, Ciclo_Semanal)
+
+        assert p.tarifa_actual() == expected_tarifa
+        (start, stop) = next(p.proximo_intervalo())
+        assert (start, stop) == expected_intervalo
+        assert p.tarifa_actual(start) != expected_tarifa
 
 
 def compare_euro(a, b, precision=2):

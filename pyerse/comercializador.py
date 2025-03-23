@@ -1,7 +1,7 @@
 """Informação por comercializador."""
 import logging
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timedelta, time, date
 from pyerse.periodos_horarios import Periodos_Horarios
 from pyerse.ciclos import Ciclo, Ciclo_Diario, Ciclo_Semanal, MAPPING as CYCLE_MAPPING
 
@@ -114,6 +114,47 @@ class Plano:
             elif periodo_actual == Periodos_Horarios.CHEIAS:
                 return Tarifa.CHEIAS
 
+    def tarifa_actual_intervalo(self, now=None):
+        """Intervalo de tarifa actual."""
+        if now is None:
+            now = datetime.now()
+        
+        return self._ciclo.get_intervalo_periodo_horario(now)
+
+    def proximo_intervalo(self, now=None):
+        """Intervalo de tarifa seguinte."""
+        if now is None:
+            now = datetime.now()
+
+        if self._opcao_horaria == Opcao_Horaria.SIMPLES:
+            datetime_start = datetime.combine(now, time(0, 0)) + timedelta(days=1)
+            return datetime_start, datetime_start + timedelta(days=1)
+
+        elif self._opcao_horaria == Opcao_Horaria.BI_HORARIA:
+            while True:
+                current_tarifa = self.tarifa_actual(now)
+                return_start, return_stop = None, None
+
+                for start, stop in self._ciclo.get_intervalo_proximo_periodo_horario(now):
+                    datetime_start = datetime.combine(now, start)
+                    new_tarifa = self.tarifa_actual(datetime_start)
+
+                    if return_start is None and new_tarifa != current_tarifa:
+                        return_start = datetime_start
+                        current_tarifa = new_tarifa
+                    elif new_tarifa != current_tarifa:
+                        return_stop = datetime_start
+                        break
+
+                if return_start < now:
+                    return_start += timedelta(days=1)
+                if return_stop < return_start:
+                    return_stop += timedelta(days=1)
+
+                yield return_start, return_stop
+                now = return_stop
+
+
     def definir_custo_kWh(self, tarifa: Tarifa, custo: float):
         """Configura o custo em Euros por kWh da tarifa."""
         self._custo[tarifa] = custo
@@ -211,7 +252,7 @@ class Plano:
         """Custos fixos em Euros."""
         if self._potencia <= 3.45:
             logging.warning(
-                "Potencia inferior a 3.45 com desconto sobre o valor total da potencia!"
+                "Potencia igual ou inferior a 3.45 com desconto sobre o valor total da potencia!"
             )
         custo_potencia = (
             dias

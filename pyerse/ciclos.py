@@ -6,7 +6,10 @@ from pyerse.periodos_horarios import Periodos_Horarios as ph
 
 
 class Ciclo:
-    """Estão previstos dois ciclos: ciclo diário (os períodos horários são iguais em todos os dias do ano) e ciclo semanal (os períodos horários diferem entre dias úteis e fim de semana)."""
+    """Estão previstos dois ciclos: ciclo diário (os períodos horários são iguais em todos os dias do ano) e ciclo semanal (os períodos horários diferem entre dias úteis e fim de semana).
+
+        Mais informações em: https://www.erse.pt/atividade/regulacao/tarifas-e-precos-eletricidade/#periodos-horarios
+    """
 
     @classmethod
     def in_time_range(cls, hour_start, minute_start, t, hour_stop, minute_stop):
@@ -20,7 +23,7 @@ class Ciclo:
 
     @classmethod
     def is_summer(cls, time):
-        # Hora legal de Verão começa no 1º Domingo de Março e acaba no ultimo de Outubro
+        # Hora legal de Verão começa no ultimo Domingo de Março e acaba no ultimo de Outubro
         # https://docs.python.org/3.3/library/datetime.html
         d = datetime(time.year, 4, 1)
         i_verao = d - timedelta(days=d.weekday() + 1)
@@ -42,90 +45,129 @@ class Ciclo_Semanal(Ciclo):
     def __str__(self) -> str:
         return "Ciclo Semanal"
 
+    PERIODOS = {
+        "Verão": {
+            0: {
+                ph.PONTA: [
+                    (time(9, 15), time(12, 15)),
+                ],
+                ph.CHEIAS: [
+                    (time(7, 0), time(9, 15)),
+                    (time(12, 15), time(0, 0)),
+                ],
+                ph.VAZIO_NORMAL: [
+                    (time(6, 0), time(7, 0)),
+                    (time(0, 0), time(2, 0)),
+                ],
+                ph.SUPER_VAZIO: [
+                    (time(2, 0), time(6, 0)),
+                ],
+            }, # Segunda
+            5: {
+                ph.CHEIAS: [
+                    (time(9, 0), time(14, 0)),
+                    (time(20, 0), time(22, 0)),
+                ],
+                ph.VAZIO_NORMAL: [
+                    (time(0, 0), time(2, 0)),
+                    (time(6, 0), time(9, 0)),
+                    (time(14, 0), time(20, 0)),
+                    (time(22, 0), time(0, 0)),
+                ],
+                ph.SUPER_VAZIO: [
+                    (time(2, 0), time(6, 0)),
+                ],
+            }, # Sábado
+            6: {
+                ph.VAZIO_NORMAL: [
+                    (time(0, 0), time(2, 0)),
+                    (time(6, 0), time(0, 0)),
+                ],
+                ph.SUPER_VAZIO: [
+                    (time(2, 0), time(6, 0)),
+                ],
+            }, # Domingo
+        },
+        "Inverno": {
+            0: {
+                ph.PONTA: [
+                    (time(9, 30), time(12, 00)),
+                    (time(18, 30), time(21, 0)),
+                ],
+                ph.CHEIAS: [
+                    (time(7, 0), time(9, 30)),
+                    (time(12, 0), time(18, 30)),
+                    (time(21, 0), time(0, 0)),
+                ],
+                ph.VAZIO_NORMAL: [
+                    (time(6, 0), time(7, 0)),
+                    (time(0, 0), time(2, 0)),
+                ],
+                ph.SUPER_VAZIO: [
+                    (time(2, 0), time(6, 0)),
+                ],
+            }, # Segunda
+            5: {
+                ph.CHEIAS: [
+                    (time(9, 30), time(13, 0)),
+                    (time(18, 30), time(22, 0)),
+                ],
+                ph.VAZIO_NORMAL: [
+                    (time(0, 0), time(2, 0)),
+                    (time(6, 0), time(9, 30)),
+                    (time(13, 0), time(18, 30)),
+                    (time(22, 0), time(0, 0)),
+                ],
+                ph.SUPER_VAZIO: [
+                    (time(2, 0), time(6, 0)),
+                ],
+            }, # Sábado
+            6: {
+                ph.VAZIO_NORMAL: [
+                    (time(0, 0), time(2, 0)),
+                    (time(6, 0), time(0, 0)),
+                ],
+                ph.SUPER_VAZIO: [
+                    (time(2, 0), time(6, 0)),
+                ],
+            }, # Domingo
+        },
+    }
+
+    @classmethod
+    def get_intervalo_periodo_horario(cls, time):
+        """Retorna o intervalo do periodo horário em que nos encontramos"""
+        
+        season = "Verão" if cls.is_summer(time) else "Inverno"
+        weekday = 0 if time.weekday() < 5 else time.weekday()
+        
+        for tariff in cls.PERIODOS[season][weekday]:
+            for start, stop in cls.PERIODOS[season][weekday][tariff]:
+                if cls.in_time_range(start.hour, start.minute, time, stop.hour, stop.minute):
+                    return (start, stop)
+                
+    @classmethod
+    def get_intervalo_proximo_periodo_horario(cls, time):
+        """Retorna o intervalo do próximo periodo horário"""
+        while True:
+            _, current_interval_stop = cls.get_intervalo_periodo_horario(time)
+            current_interval_stop = datetime.combine(date.today(), current_interval_stop)
+            time = current_interval_stop + timedelta(minutes=1)
+            yield cls.get_intervalo_periodo_horario(time)
+
+
+
     @classmethod
     def get_periodo_horario(cls, time):
-        if cls.is_summer(time):
-            # Verão
-            if 0 <= time.weekday() < 5:
-                # Seg a Sex
-                if cls.in_time_range(9, 15, time, 12, 15):
-                    return ph.PONTA
-                if cls.in_time_range(7, 0, time, 9, 15) or cls.in_time_range(
-                    12, 15, time, 0, 0
-                ):
-                    return ph.CHEIAS
-                if cls.in_time_range(0, 0, time, 2, 0) or cls.in_time_range(
-                    6, 0, time, 7, 0
-                ):
-                    return ph.VAZIO_NORMAL
-                if cls.in_time_range(2, 0, time, 6, 0):
-                    return ph.SUPER_VAZIO
-            if time.weekday() == 5:
-                # Sabado
-                if cls.in_time_range(9, 0, time, 14, 0) or cls.in_time_range(
-                    20, 0, time, 22, 0
-                ):
-                    return ph.CHEIAS
-                if (
-                    cls.in_time_range(0, 0, time, 2, 0)
-                    or cls.in_time_range(6, 0, time, 9, 0)
-                    or cls.in_time_range(14, 0, time, 20, 0)
-                    or cls.in_time_range(22, 0, time, 0, 0)
-                ):
-                    return ph.VAZIO_NORMAL
-                if cls.in_time_range(2, 0, time, 6, 0):
-                    return ph.SUPER_VAZIO
-            if time.weekday() == 6:
-                # Domingo
-                if cls.in_time_range(0, 0, time, 2, 0) or cls.in_time_range(
-                    6, 0, time, 0, 0
-                ):
-                    return ph.VAZIO_NORMAL
-                if cls.in_time_range(2, 0, time, 6, 0):
-                    return ph.SUPER_VAZIO
-        else:
-            # Inverno
-            if 0 <= time.weekday() < 5:
-                # Seg a Sex
-                if cls.in_time_range(9, 30, time, 12, 00) or cls.in_time_range(
-                    18, 30, time, 21, 0
-                ):
-                    return ph.PONTA
-                if (
-                    cls.in_time_range(7, 0, time, 9, 30)
-                    or cls.in_time_range(12, 0, time, 18, 30)
-                    or cls.in_time_range(21, 0, time, 0, 0)
-                ):
-                    return ph.CHEIAS
-                if cls.in_time_range(0, 0, time, 2, 0) or cls.in_time_range(
-                    6, 0, time, 7, 0
-                ):
-                    return ph.VAZIO_NORMAL
-                if cls.in_time_range(2, 0, time, 6, 0):
-                    return ph.SUPER_VAZIO
-            if time.weekday() == 5:
-                # Sabado
-                if cls.in_time_range(9, 30, time, 13, 0) or cls.in_time_range(
-                    18, 30, time, 22, 0
-                ):
-                    return ph.CHEIAS
-                if (
-                    cls.in_time_range(0, 0, time, 2, 0)
-                    or cls.in_time_range(6, 0, time, 9, 30)
-                    or cls.in_time_range(13, 0, time, 18, 30)
-                    or cls.in_time_range(22, 0, time, 0, 0)
-                ):
-                    return ph.VAZIO_NORMAL
-                if cls.in_time_range(2, 0, time, 6, 0):
-                    return ph.SUPER_VAZIO
-            if time.weekday() == 6:
-                # Domingo
-                if cls.in_time_range(0, 0, time, 2, 0) or cls.in_time_range(
-                    6, 0, time, 0, 0
-                ):
-                    return ph.VAZIO_NORMAL
-                if cls.in_time_range(2, 0, time, 6, 0):
-                    return ph.SUPER_VAZIO
+        """Retorna a tarifa em que nos encontramos"""
+        season = "Verão" if cls.is_summer(time) else "Inverno"
+        weekday = 0 if time.weekday() < 5 else time.weekday()
+        
+        for ph in cls.PERIODOS[season][weekday]:
+            for start, stop in cls.PERIODOS[season][weekday][ph]:
+                if cls.in_time_range(start.hour, start.minute, time, stop.hour, stop.minute):
+                    return ph
+
 
 
 class Ciclo_Diario(Ciclo):
@@ -133,49 +175,59 @@ class Ciclo_Diario(Ciclo):
 
     def __str__(self) -> str:
         return "Ciclo Diário"
+    
+    PERIODOS = {
+        "Verão": {
+            ph.PONTA: [
+                (time(10, 30), time(13, 00)),
+                (time(19, 30), time(21, 0)),
+            ],
+            ph.CHEIAS: [
+                (time(8, 0), time(10, 30)),
+                (time(13, 0), time(19, 30)),
+                (time(21, 0), time(22, 0)),
+            ],
+            ph.VAZIO_NORMAL: [
+                (time(0, 0), time(2, 0)),
+                (time(6, 0), time(8, 0)),
+                (time(22, 0), time(0, 0)),
+            ],
+            ph.SUPER_VAZIO: [
+                (time(2, 0), time(6, 0)),
+            ],
+        },
+        "Inverno": {
+            ph.PONTA: [
+                (time(9, 0), time(10, 30)),
+                (time(18, 0), time(20, 30)),
+            ],
+            ph.CHEIAS: [
+                (time(8, 0), time(9, 0)),
+                (time(10, 30), time(18, 0)),
+                (time(20, 30), time(22, 0)),
+            ],
+            ph.VAZIO_NORMAL: [
+                (time(0, 0), time(2, 0)),
+                (time(6, 0), time(8, 0)),
+                (time(22, 0), time(0, 0)),
+            ],
+            ph.SUPER_VAZIO: [
+                (time(2, 0), time(6, 0)),
+            ],
+        },
+    }
+
 
     @classmethod
     def get_periodo_horario(cls, time):
-        if cls.is_summer(time):
-            # Verão
-            if cls.in_time_range(10, 30, time, 13, 00) or cls.in_time_range(
-                19, 30, time, 21, 0
-            ):
-                return ph.PONTA
-            if (
-                cls.in_time_range(8, 0, time, 10, 30)
-                or cls.in_time_range(13, 0, time, 19, 30)
-                or cls.in_time_range(21, 0, time, 22, 0)
-            ):
-                return ph.CHEIAS
-            if (
-                cls.in_time_range(6, 0, time, 8, 0)
-                or cls.in_time_range(22, 0, time, 0, 0)
-                or cls.in_time_range(0, 0, time, 2, 0)
-            ):
-                return ph.VAZIO_NORMAL
-            if cls.in_time_range(2, 0, time, 6, 0):
-                return ph.SUPER_VAZIO
-        else:
-            # Inverno
-            if cls.in_time_range(9, 0, time, 10, 30) or cls.in_time_range(
-                18, 0, time, 20, 30
-            ):
-                return ph.PONTA
-            if (
-                cls.in_time_range(8, 0, time, 9, 0)
-                or cls.in_time_range(10, 30, time, 18, 0)
-                or cls.in_time_range(20, 30, time, 22, 0)
-            ):
-                return ph.CHEIAS
-            if (
-                cls.in_time_range(6, 0, time, 8, 0)
-                or cls.in_time_range(22, 0, time, 0, 0)
-                or cls.in_time_range(0, 0, time, 2, 0)
-            ):
-                return ph.VAZIO_NORMAL
-            if cls.in_time_range(2, 0, time, 6, 0):
-                return ph.SUPER_VAZIO
+        """Retorna a tarifa em que nos encontramos"""
+
+        season = "Verão" if cls.is_summer(time) else "Inverno"
+        
+        for ph in cls.PERIODOS[season]:
+            for start, stop in cls.PERIODOS[season][ph]:
+                if cls.in_time_range(start.hour, start.minute, time, stop.hour, stop.minute):
+                    return ph
 
 
 MAPPING = {str(Ciclo_Semanal()): Ciclo_Semanal, str(Ciclo_Diario()): Ciclo_Diario}
