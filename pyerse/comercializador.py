@@ -153,6 +153,29 @@ class Plano:
 
                 yield return_start, return_stop
                 now = return_stop
+        elif self._opcao_horaria == Opcao_Horaria.TRI_HORARIA:
+            while True:
+                current_tarifa = self.tarifa_actual(now)
+                return_start, return_stop = None, None
+
+                for start, stop in self._ciclo.get_intervalo_proximo_periodo_horario(now):
+                    datetime_start = datetime.combine(now, start)
+                    new_tarifa = self.tarifa_actual(datetime_start)
+
+                    if return_start is None and new_tarifa != current_tarifa:
+                        return_start = datetime_start
+                        current_tarifa = new_tarifa
+                    elif new_tarifa != current_tarifa:
+                        return_stop = datetime_start
+                        break
+
+                if return_start < now:
+                    return_start += timedelta(days=1)
+                if return_stop < return_start:
+                    return_stop += timedelta(days=1)
+
+                yield return_start, return_stop
+                now = return_stop
 
 
     def definir_custo_kWh(self, tarifa: Tarifa, custo: float):

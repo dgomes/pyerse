@@ -42,7 +42,23 @@ def test_tarifa_proximo_intervalo_bi_horario(frozen_time, expected_tarifa, expec
         assert p.tarifa_actual() == expected_tarifa
         (start, stop) = next(p.proximo_intervalo())
         assert (start, stop) == expected_intervalo
-        assert p.tarifa_actual(start) != expected_tarifa
+        print(start)
+        assert p.tarifa_actual(start) == expected_new_tarifa
+
+
+@pytest.mark.parametrize("frozen_time, expected_tarifa, expected_intervalo, expected_new_tarifa", [
+    ("2025-03-24 00:05:00", Tarifa.VAZIO, (datetime(2025, 3, 24, 7, 0), datetime(2025, 3, 24, 9, 30)), Tarifa.CHEIAS),
+    ("2025-03-24 15:15:00", Tarifa.CHEIAS, (datetime(2025, 3, 24, 18, 30), datetime(2025, 3, 24, 21, 0)), Tarifa.PONTA),
+])
+def test_tarifa_proximo_intervalo_tri_horario(frozen_time, expected_tarifa, expected_intervalo, expected_new_tarifa):
+    with freeze_time(frozen_time):
+        p = Plano(6.9, Opcao_Horaria.TRI_HORARIA, Ciclo_Semanal)
+
+        assert p.tarifa_actual() == expected_tarifa
+        (start, stop) = next(p.proximo_intervalo())
+        assert (start, stop) == expected_intervalo
+        assert p.tarifa_actual(start) == expected_new_tarifa
+
 
 
 def compare_euro(a, b, precision=2):
