@@ -119,7 +119,9 @@ class Plano:
         if now is None:
             now = datetime.now()
         
-        return self._ciclo.get_intervalo_periodo_horario(now)
+        start, end = self._ciclo.get_intervalo_periodo_horario(now)
+
+        return start, end   
 
     def proximo_intervalo(self, now=None):
         """Intervalo de tarifa seguinte."""
@@ -130,52 +132,25 @@ class Plano:
             datetime_start = datetime.combine(now, time(0, 0)) + timedelta(days=1)
             return datetime_start, datetime_start + timedelta(days=1)
 
-        elif self._opcao_horaria == Opcao_Horaria.BI_HORARIA:
+        elif self._opcao_horaria in [Opcao_Horaria.BI_HORARIA, Opcao_Horaria.TRI_HORARIA]:
             while True:
                 current_tarifa = self.tarifa_actual(now)
-                return_start, return_stop = None, None
+                return_start, return_stop = self.tarifa_actual_intervalo(now)
 
-                for start, stop in self._ciclo.get_intervalo_proximo_periodo_horario(now):
-                    datetime_start = datetime.combine(now, start)
+                for start, stop in self._ciclo.get_intervalo_proximo_periodo_horario(return_start):
+                    datetime_start = start
                     new_tarifa = self.tarifa_actual(datetime_start)
 
-                    if return_start is None and new_tarifa != current_tarifa:
+                    if return_start is None:
                         return_start = datetime_start
                         current_tarifa = new_tarifa
                     elif new_tarifa != current_tarifa:
                         return_stop = datetime_start
                         break
 
-                if return_start < now:
-                    return_start += timedelta(days=1)
-                if return_stop < return_start:
-                    return_stop += timedelta(days=1)
-
                 yield return_start, return_stop
-                now = return_stop
-        elif self._opcao_horaria == Opcao_Horaria.TRI_HORARIA:
-            while True:
-                current_tarifa = self.tarifa_actual(now)
-                return_start, return_stop = None, None
+                return_start = return_stop
 
-                for start, stop in self._ciclo.get_intervalo_proximo_periodo_horario(now):
-                    datetime_start = datetime.combine(now, start)
-                    new_tarifa = self.tarifa_actual(datetime_start)
-
-                    if return_start is None and new_tarifa != current_tarifa:
-                        return_start = datetime_start
-                        current_tarifa = new_tarifa
-                    elif new_tarifa != current_tarifa:
-                        return_stop = datetime_start
-                        break
-
-                if return_start < now:
-                    return_start += timedelta(days=1)
-                if return_stop < return_start:
-                    return_stop += timedelta(days=1)
-
-                yield return_start, return_stop
-                now = return_stop
 
 
     def definir_custo_kWh(self, tarifa: Tarifa, custo: float):
