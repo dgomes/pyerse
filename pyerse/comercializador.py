@@ -136,7 +136,9 @@ class Plano:
             current_tarifa = self.tarifa_actual(now)
             return_start, return_stop = None, None
 
-            for start, stop in self._ciclo.iter_intervalo_periodo_horario(now):
+            _, prox_intervalo = self._ciclo.get_intervalo_periodo_horario(now)
+
+            for start, stop in self._ciclo.iter_intervalo_periodo_horario(prox_intervalo):
                 new_tarifa = self.tarifa_actual(start)
 
                 if new_tarifa != current_tarifa and return_start is None:               
@@ -145,14 +147,11 @@ class Plano:
 
                 if new_tarifa != current_tarifa and return_stop is None:
                     return_stop = start
-
+            
                     yield return_start, return_stop
 
                     current_tarifa = new_tarifa
-                    return_start, return_stop = None, None
-
-
-
+                    return_start, return_stop = return_stop, None
 
     def definir_custo_kWh(self, tarifa: Tarifa, custo: float):
         """Configura o custo em Euros por kWh da tarifa."""
