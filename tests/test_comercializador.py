@@ -6,30 +6,30 @@ from pyerse.ciclos import Ciclo_Semanal
 from pyerse.comercializador import Plano, Opcao_Horaria, Tarifa
 
 @pytest.mark.parametrize("frozen_time, expected_tarifa, expected_intervalo", [
-    ("2025-03-23 00:05:00", Tarifa.VAZIO, (datetime(2025, 3, 23, 0, 0), datetime(2025, 3, 23, 2, 0))),
-    ("2025-03-23 15:15:00", Tarifa.VAZIO, (datetime(2025, 3, 23, 6, 0), datetime(2025, 3, 24, 0, 0))),
+    ("2025-03-23 00:05:00", Tarifa.VAZIO, (datetime(2025, 3, 23, 0, 0), datetime(2025, 3, 24, 7, 0))),
+    ("2025-03-23 15:15:00", Tarifa.VAZIO, (datetime(2025, 3, 23, 6, 0), datetime(2025, 3, 24, 7, 0))),
     ("2025-03-22 12:15:00", Tarifa.FORA_DE_VAZIO, (datetime(2025, 3, 22, 9, 30), datetime(2025, 3, 22, 13, 0))),
-    ("2025-03-24 20:00:00", Tarifa.FORA_DE_VAZIO, (datetime(2025, 3, 24, 18, 30), datetime(2025, 3, 24, 21, 0)))
+    ("2025-03-24 20:00:00", Tarifa.FORA_DE_VAZIO, (datetime(2025, 3, 24, 18, 30), datetime(2025, 3, 25, 0, 0)))
 ])
 def test_intervalo_bi_horario_semanal(frozen_time, expected_tarifa, expected_intervalo):
     with freeze_time(frozen_time):
         p = Plano(6.9, Opcao_Horaria.BI_HORARIA, Ciclo_Semanal)
 
         assert p.tarifa_actual() == expected_tarifa
-        assert p.tarifa_actual_intervalo() == expected_intervalo
+        assert next(p.intervalo()) == expected_intervalo
 
 @pytest.mark.parametrize("frozen_time, expected_tarifa, expected_intervalo", [
-    ("2025-03-23 00:05:00", Tarifa.VAZIO, (datetime(2025, 3, 23, 0, 0), datetime(2025, 3, 23, 2, 0))),
-    ("2025-03-23 15:15:00", Tarifa.VAZIO, (datetime(2025, 3, 23, 6, 0), datetime(2025, 3, 24, 0, 0))),
+    ("2025-03-23 00:05:00", Tarifa.VAZIO, (datetime(2025, 3, 23, 0, 0), datetime(2025, 3, 24, 7, 0))),
+    ("2025-03-23 15:15:00", Tarifa.VAZIO, (datetime(2025, 3, 23, 6, 0), datetime(2025, 3, 24, 7, 0))),
     ("2025-03-22 12:15:00", Tarifa.CHEIAS, (datetime(2025, 3, 22, 9, 30), datetime(2025, 3, 22, 13, 0))),
     ("2025-03-24 20:00:00", Tarifa.PONTA, (datetime(2025, 3, 24, 18, 30), datetime(2025, 3, 24, 21, 0)))
 ])
-def test_intervalo_bi_horario_diario(frozen_time, expected_tarifa, expected_intervalo):
+def test_intervalo_tri_horario_semanal(frozen_time, expected_tarifa, expected_intervalo):
     with freeze_time(frozen_time):
         p = Plano(6.9, Opcao_Horaria.TRI_HORARIA, Ciclo_Semanal)
 
         assert p.tarifa_actual() == expected_tarifa
-        assert p.tarifa_actual_intervalo() == expected_intervalo
+        assert next(p.intervalo()) == expected_intervalo
 
 @pytest.mark.parametrize("frozen_time, expected_tarifa, expected_intervalo, expected_new_tarifa, expected_intervalo2, expected_new_tarifa2", [
     ("2025-03-24 00:05:00", Tarifa.VAZIO, (datetime(2025, 3, 24, 7, 0), datetime(2025, 3, 25, 0, 0)), Tarifa.FORA_DE_VAZIO, (datetime(2025, 3, 25, 0, 0), datetime(2025, 3, 25, 7, 0)), Tarifa.VAZIO),
@@ -39,7 +39,8 @@ def test_tarifa_proximo_intervalo_bi_horario_semanal(frozen_time, expected_tarif
     with freeze_time(frozen_time):
         p = Plano(6.9, Opcao_Horaria.BI_HORARIA, Ciclo_Semanal)
 
-        it = p.proximo_intervalo()
+        it = p.intervalo()
+        next(it)
 
         assert p.tarifa_actual() == expected_tarifa
         (start, stop) = next(it)
@@ -59,8 +60,11 @@ def test_tarifa_proximo_intervalo_tri_horario(frozen_time, expected_tarifa, expe
     with freeze_time(frozen_time):
         p = Plano(6.9, Opcao_Horaria.TRI_HORARIA, Ciclo_Semanal)
 
+        it = p.intervalo()
+        next(it)
+
         assert p.tarifa_actual() == expected_tarifa
-        (start, stop) = next(p.proximo_intervalo())
+        (start, stop) = next(it)
         assert p.tarifa_actual(start) == expected_new_tarifa
         assert (start, stop) == expected_intervalo
  

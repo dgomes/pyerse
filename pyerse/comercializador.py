@@ -114,17 +114,9 @@ class Plano:
             elif periodo_actual == Periodos_Horarios.CHEIAS:
                 return Tarifa.CHEIAS
 
-    def tarifa_actual_intervalo(self, now=None):
-        """Intervalo de tarifa actual."""
-        if now is None:
-            now = datetime.now()
-        
-        start, end = self._ciclo.get_intervalo_periodo_horario(now)
 
-        return start, end   
-
-    def proximo_intervalo(self, now=None):
-        """Intervalo de tarifa seguinte."""
+    def intervalo(self, now=None):
+        """iterator sobre os Intervalos de tarifa."""
         if now is None:
             now = datetime.now()
 
@@ -135,13 +127,18 @@ class Plano:
         elif self._opcao_horaria in [Opcao_Horaria.BI_HORARIA, Opcao_Horaria.TRI_HORARIA]:
             current_tarifa = self.tarifa_actual(now)
             return_start, return_stop = None, None
+            initial = None
+            current = False
 
-            _, prox_intervalo = self._ciclo.get_intervalo_periodo_horario(now)
-
-            for start, stop in self._ciclo.iter_intervalo_periodo_horario(prox_intervalo):
+            for start, stop in self._ciclo.iter_intervalo_periodo_horario(now):
                 new_tarifa = self.tarifa_actual(start)
+                if initial is None:
+                    initial = start #TODO devia andar para tras
 
-                if new_tarifa != current_tarifa and return_start is None:               
+                if new_tarifa != current_tarifa and return_start is None:
+                    if not current:
+                        current = True
+                        yield initial, start              
                     return_start = start
                     current_tarifa = new_tarifa
 
