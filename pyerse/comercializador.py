@@ -133,23 +133,24 @@ class Plano:
             return datetime_start, datetime_start + timedelta(days=1)
 
         elif self._opcao_horaria in [Opcao_Horaria.BI_HORARIA, Opcao_Horaria.TRI_HORARIA]:
-            while True:
-                current_tarifa = self.tarifa_actual(now)
-                return_start, return_stop = self.tarifa_actual_intervalo(now)
+            current_tarifa = self.tarifa_actual(now)
+            return_start, return_stop = None, None
 
-                for start, stop in self._ciclo.get_intervalo_proximo_periodo_horario(return_start):
-                    datetime_start = start
-                    new_tarifa = self.tarifa_actual(datetime_start)
+            for start, stop in self._ciclo.iter_intervalo_periodo_horario(now):
+                new_tarifa = self.tarifa_actual(start)
 
-                    if return_start is None:
-                        return_start = datetime_start
-                        current_tarifa = new_tarifa
-                    elif new_tarifa != current_tarifa:
-                        return_stop = datetime_start
-                        break
+                if new_tarifa != current_tarifa and return_start is None:               
+                    return_start = start
+                    current_tarifa = new_tarifa
 
-                yield return_start, return_stop
-                return_start = return_stop
+                if new_tarifa != current_tarifa and return_stop is None:
+                    return_stop = start
+
+                    yield return_start, return_stop
+
+                    current_tarifa = new_tarifa
+                    return_start, return_stop = None, None
+
 
 
 
