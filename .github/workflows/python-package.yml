@@ -33,7 +33,7 @@ jobs:
           ruff check .
           ruff format --check .
       - name: Run tests
-        run: python -m pytest
+        run: python -m pytest --cov=pyerse --cov-branch --cov-report=term-missing --cov-fail-under=90
 
   build:
     runs-on: ubuntu-latest

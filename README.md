@@ -19,6 +19,7 @@ python -m pip install -e ".[dev]"
 ruff check .
 ruff format --check .
 python -m pytest
+python -m pytest --cov=pyerse --cov-branch --cov-report=term-missing --cov-fail-under=90
 python -m build
 python -m twine check --strict dist/*
 ```
