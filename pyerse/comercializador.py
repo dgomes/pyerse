@@ -175,80 +175,67 @@ class Plano:
     def custo_potencia(self):
         return self._custo[self._potencia]
 
-    def custo_kWh_actual(self, kwh_consumidos: float, familia_numerosa=False):
-        """
-        Custo com IVA do kWh na tarifa do momento.
+    def _limiar_iva(self, familia_numerosa=False, dias=30):
+        """Limiar de consumo com IVA reduzido, proporcional aos dias faturados."""
+        if dias < 0:
+            raise PlanoException("Número de dias não pode ser negativo")
+        if self._potencia > 6.9:
+            return 0.0
+        return (300 if familia_numerosa else 200) * dias / 30
 
-        Ver https://www.erse.pt/media/pzievesl/ersexplica_aplicação-do-iva.pdf
+    def custo_kWh_actual(
+        self, kwh_consumidos: float, familia_numerosa=False, *,
+        total_kwh: float | None = None, dias=30,
+    ):
+        """Preço marginal com IVA, segundo as regras de janeiro de 2025.
+
+        Para opções multi-horárias, total_kwh deve incluir todas as tarifas.
+        Sem total_kwh, considera-se kwh_consumidos como o consumo total.
         """
         tarifa_actual = self.tarifa_actual()
-
         try:
             custo_kwh = self._custo[tarifa_actual]
         except KeyError:
             raise PlanoException(f"Sem valor de custo para {tarifa_actual}")
+        total = kwh_consumidos if total_kwh is None else total_kwh
+        limiar = self._limiar_iva(familia_numerosa, dias)
+        iva = IVA_REDUZIDA if self._potencia <= 6.9 and total <= limiar else IVA_NORMAL
+        return custo_kwh * iva
 
-        if self._potencia > 6.9:
-            return custo_kwh * IVA_NORMAL
+    def custo_kWh(
+        self, tarifa: Tarifa, kwh_consumidos: float, familia_numerosa=False, *,
+        total_kwh: float | None = None, dias=30,
+    ):
+        """Custo da energia com IVA, segundo as regras de janeiro de 2025.
 
-        def desconto(plafond):
-            if kwh_consumidos > plafond:
-                return custo_kwh * IVA_NORMAL
-            else:
-                return custo_kwh * IVA_INTERMEDIA
-
-        if self._opcao_horaria == Opcao_Horaria.SIMPLES:
-            return desconto(150 if familia_numerosa else 100)
-
-        if self._opcao_horaria == Opcao_Horaria.BI_HORARIA:
-            if tarifa_actual == Tarifa.VAZIO:
-                return desconto(60 if familia_numerosa else 40)
-            else:
-                return desconto(90 if familia_numerosa else 60)
-
-        if self._opcao_horaria == Opcao_Horaria.TRI_HORARIA:
-            if tarifa_actual == Tarifa.CHEIAS:
-                return desconto(64.3 if familia_numerosa else 42.9)
-            elif tarifa_actual == Tarifa.PONTA:
-                return desconto(25.7 if familia_numerosa else 17.1)
-            elif tarifa_actual == Tarifa.VAZIO:
-                return desconto(60 if familia_numerosa else 40)
-
-    def custo_kWh(self, tarifa: Tarifa, kwh_consumidos: float, familia_numerosa=False):
-        """Custo em Euros dos kWh consumidos na tarifa."""
+        O limite é 200 kWh (300 para famílias numerosas) por 30 dias até
+        6,9 kVA. Nas opções multi-horárias, passar total_kwh com a soma de
+        todos os períodos para repartir o limite pelo consumo efetivo.
+        Sem total_kwh, considera-se kwh_consumidos como o consumo total.
+        Não recalcula impostos de períodos anteriores a janeiro de 2025.
+        """
         try:
             custo_kwh = self._custo[tarifa]
         except KeyError:
             raise PlanoException(f"Sem valor de custo para {tarifa}")
+        total = kwh_consumidos if total_kwh is None else total_kwh
+        if kwh_consumidos < 0 or total < kwh_consumidos:
+            raise PlanoException("Consumo total deve ser não negativo e incluir a tarifa")
+        limiar = self._limiar_iva(familia_numerosa, dias)
+        reduzido = min(kwh_consumidos, limiar * kwh_consumidos / total) if total else 0.0
+        return round(reduzido * custo_kwh * IVA_REDUZIDA, 2) + round(
+            (kwh_consumidos - reduzido) * custo_kwh * IVA_NORMAL, 2
+        )
 
-        def desconto(plafond):
-            if kwh_consumidos > plafond:
-                return round(plafond * custo_kwh * IVA_INTERMEDIA, 2) + round(
-                    (kwh_consumidos - plafond) * custo_kwh * IVA_NORMAL, 2
-                )
-            else:
-                return round(kwh_consumidos * custo_kwh * IVA_INTERMEDIA, 2)
-
-        if self._opcao_horaria == Opcao_Horaria.SIMPLES:
-            return desconto(150 if familia_numerosa else 100)
-
-        if self._opcao_horaria == Opcao_Horaria.BI_HORARIA:
-            if tarifa == Tarifa.VAZIO:
-                return desconto(60 if familia_numerosa else 40)
-            else:
-                return desconto(90 if familia_numerosa else 60)
-
-        if self._opcao_horaria == Opcao_Horaria.TRI_HORARIA:
-            if tarifa == Tarifa.CHEIAS:
-                return desconto(64.3 if familia_numerosa else 42.9)
-            elif tarifa == Tarifa.PONTA:
-                return desconto(25.7 if familia_numerosa else 17.1)
-            elif tarifa == Tarifa.VAZIO:
-                return desconto(60 if familia_numerosa else 40)
-
-    def custo_kWh_final(self, tarifa: Tarifa, kwh_consumidos: float, familia_numerosa=False):
+    def custo_kWh_final(
+        self, tarifa: Tarifa, kwh_consumidos: float, familia_numerosa=False, *,
+        total_kwh: float | None = None, dias=30,
+    ):
+        """Custo com IVA e imposto especial de consumo (IEC)."""
         return (
-            self.custo_kWh(tarifa, kwh_consumidos, familia_numerosa)
+            self.custo_kWh(
+                tarifa, kwh_consumidos, familia_numerosa, total_kwh=total_kwh, dias=dias
+            )
             + kwh_consumidos * IMPOSTO_ESPECIAL_CONSUMO * IVA_NORMAL
         )
 

@@ -11,12 +11,12 @@ from pyerse.comercializador import Comercializador, Opcao_Horaria, Plano, PlanoE
 @pytest.mark.parametrize(
     "option, tariff, hour, limit, family_limit",
     [
-        (Opcao_Horaria.SIMPLES, Tarifa.NORMAL, 12, 100, 150),
-        (Opcao_Horaria.BI_HORARIA, Tarifa.VAZIO, 3, 40, 60),
-        (Opcao_Horaria.BI_HORARIA, Tarifa.FORA_DE_VAZIO, 12, 60, 90),
-        (Opcao_Horaria.TRI_HORARIA, Tarifa.VAZIO, 3, 40, 60),
-        (Opcao_Horaria.TRI_HORARIA, Tarifa.CHEIAS, 12, 42.9, 64.3),
-        (Opcao_Horaria.TRI_HORARIA, Tarifa.PONTA, 10, 17.1, 25.7),
+        (Opcao_Horaria.SIMPLES, Tarifa.NORMAL, 12, 200, 300),
+        (Opcao_Horaria.BI_HORARIA, Tarifa.VAZIO, 3, 200, 300),
+        (Opcao_Horaria.BI_HORARIA, Tarifa.FORA_DE_VAZIO, 12, 200, 300),
+        (Opcao_Horaria.TRI_HORARIA, Tarifa.VAZIO, 3, 200, 300),
+        (Opcao_Horaria.TRI_HORARIA, Tarifa.CHEIAS, 12, 200, 300),
+        (Opcao_Horaria.TRI_HORARIA, Tarifa.PONTA, 10, 200, 300),
     ],
 )
 def test_consumption_cost_thresholds(family, option, tariff, hour, limit, family_limit):
@@ -24,14 +24,14 @@ def test_consumption_cost_thresholds(family, option, tariff, hour, limit, family
     plan.definir_custo_kWh(tariff, 0.2)
     threshold = family_limit if family else limit
     with freeze_time(datetime(2025, 1, 6, hour)):
-        assert plan.custo_kWh_actual(threshold, family) == pytest.approx(0.226)
+        assert plan.custo_kWh_actual(threshold, family) == pytest.approx(0.212)
         assert plan.custo_kWh_actual(threshold + 1, family) == pytest.approx(0.246)
     assert plan.custo_kWh(tariff, 0, family) == 0
-    assert plan.custo_kWh(tariff, threshold, family) == round(threshold * 0.226, 2)
+    assert plan.custo_kWh(tariff, threshold, family) == round(threshold * 0.212, 2)
     assert plan.custo_kWh(tariff, threshold + 10, family) == pytest.approx(
-        round(threshold * 0.226, 2) + 2.46
+        round(threshold * 0.212, 2) + 2.46
     )
-    assert plan.custo_kWh_final(tariff, 10, family) == pytest.approx(2.26 + 0.0123)
+    assert plan.custo_kWh_final(tariff, 10, family) == pytest.approx(2.12 + 0.0123)
 
 
 def test_high_power_and_missing_prices():

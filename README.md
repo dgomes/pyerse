@@ -60,3 +60,26 @@ Cycle names are also accepted, such as `"Ciclo Semanal Açores"` and
 supported names. These schedules come from ERSE's chart retrieved on
 8 October 2026; see [the extraction and audit](docs/erse-cycle-audit.md).
 Prices and taxes are not regionalized by selecting a cycle.
+
+## Consumption VAT (January 2025 rules)
+
+Consumption costs use mainland VAT: 6% on up to 200 kWh per 30 billed days
+(300 kWh with `familia_numerosa=True`) for power up to 6.9 kVA, and 23% on
+the remainder. Above 6.9 kVA, the entire consumption has 23% VAT.
+`custo_kWh_final` also adds electricity excise duty, taxed at 23%.
+
+For multi-tariff plans, pass `total_kwh` as the combined consumption of all
+periods so the allowance is allocated proportionally. `dias` defaults to 30.
+Without `total_kwh`, the supplied tariff consumption is treated as the total;
+that default is appropriate for single-tariff plans.
+
+```python
+cost = plan.custo_kWh_final(
+    tariff, kwh_consumidos=98, total_kwh=350, dias=30
+)
+```
+
+The same keyword arguments are accepted by `custo_kWh` and
+`custo_kWh_actual`. Prices supplied with `definir_custo_kWh` exclude taxes.
+These methods apply current rules and do not calculate historical VAT.
+See [ERSE's explanation](https://www.erse.pt/media/0eydrnj1/ersexplica_iva-fatura_2025.pdf).
