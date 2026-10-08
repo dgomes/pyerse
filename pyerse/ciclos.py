@@ -1,27 +1,26 @@
-""""Helper com ciclos"""
+""" "Helper com ciclos"""
 
-from datetime import time, datetime, timedelta
+from datetime import datetime, time, timedelta
 
 from pyerse.periodos_horarios import Periodos_Horarios as ph
 
+
 class CicloException(Exception):
     """Exceptions lançadas por Ciclo."""
+
     pass
+
 
 class Ciclo:
     """Estão previstos dois ciclos: ciclo diário (os períodos horários são iguais em todos os dias do ano) e ciclo semanal (os períodos horários diferem entre dias úteis e fim de semana).
 
-        Mais informações em: https://www.erse.pt/atividade/regulacao/tarifas-e-precos-eletricidade/#periodos-horarios
+    Mais informações em: https://www.erse.pt/atividade/regulacao/tarifas-e-precos-eletricidade/#periodos-horarios
     """
 
     @classmethod
     def in_time_range(cls, hour_start, minute_start, t, hour_stop, minute_stop):
         if hour_stop < hour_start:
-            return not (
-                time(hour_stop, minute_stop)
-                <= t.time()
-                < time(hour_start, minute_start)
-            )
+            return not (time(hour_stop, minute_stop) <= t.time() < time(hour_start, minute_start))
         return time(hour_start, minute_start) <= t.time() < time(hour_stop, minute_stop)
 
     @classmethod
@@ -36,13 +35,12 @@ class Ciclo:
             return True
         return False
 
-
     @classmethod
     def get_periodo_horario(cls, time):
         """Retorna o Periodo Horario em que nos encontramos."""
         season = "Verão" if cls.is_summer(time) else "Inverno"
-        weekday = 0 if time.weekday() < 5 or hasattr(cls, 'diario') else time.weekday()
-        
+        weekday = 0 if time.weekday() < 5 or hasattr(cls, "diario") else time.weekday()
+
         for periodo_horario in cls.PERIODOS[season][weekday]:
             for start, stop in cls.PERIODOS[season][weekday][periodo_horario]:
                 if cls.in_time_range(start.hour, start.minute, time, stop.hour, stop.minute):
@@ -51,10 +49,10 @@ class Ciclo:
     @classmethod
     def get_intervalo_periodo_horario(cls, dt):
         """Retorna o intervalo do periodo horário em que nos encontramos."""
-        
+
         season = "Verão" if cls.is_summer(dt) else "Inverno"
-        weekday = 0 if dt.weekday() < 5 or hasattr(cls, 'diario') else dt.weekday()
-        
+        weekday = 0 if dt.weekday() < 5 or hasattr(cls, "diario") else dt.weekday()
+
         for tariff in cls.PERIODOS[season][weekday]:
             for start, stop in cls.PERIODOS[season][weekday][tariff]:
                 if cls.in_time_range(start.hour, start.minute, dt, stop.hour, stop.minute):
@@ -68,7 +66,9 @@ class Ciclo:
 
                     return (start, stop)
 
-        raise CicloException(f"Não foi possível determinar o intervalo do periodo horário para a data {dt}.")
+        raise CicloException(
+            f"Não foi possível determinar o intervalo do periodo horário para a data {dt}."
+        )
 
     @classmethod
     def iter_intervalo_periodo_horario(cls, dt):
@@ -102,7 +102,7 @@ class Ciclo_Semanal(Ciclo):
                 ph.SUPER_VAZIO: [
                     (time(2, 0), time(6, 0)),
                 ],
-            }, # Segunda
+            },  # Segunda
             5: {
                 ph.CHEIAS: [
                     (time(9, 0), time(14, 0)),
@@ -117,7 +117,7 @@ class Ciclo_Semanal(Ciclo):
                 ph.SUPER_VAZIO: [
                     (time(2, 0), time(6, 0)),
                 ],
-            }, # Sábado
+            },  # Sábado
             6: {
                 ph.VAZIO_NORMAL: [
                     (time(0, 0), time(2, 0)),
@@ -126,7 +126,7 @@ class Ciclo_Semanal(Ciclo):
                 ph.SUPER_VAZIO: [
                     (time(2, 0), time(6, 0)),
                 ],
-            }, # Domingo
+            },  # Domingo
         },
         "Inverno": {
             0: {
@@ -146,7 +146,7 @@ class Ciclo_Semanal(Ciclo):
                 ph.SUPER_VAZIO: [
                     (time(2, 0), time(6, 0)),
                 ],
-            }, # Segunda
+            },  # Segunda
             5: {
                 ph.CHEIAS: [
                     (time(9, 30), time(13, 0)),
@@ -161,7 +161,7 @@ class Ciclo_Semanal(Ciclo):
                 ph.SUPER_VAZIO: [
                     (time(2, 0), time(6, 0)),
                 ],
-            }, # Sábado
+            },  # Sábado
             6: {
                 ph.VAZIO_NORMAL: [
                     (time(0, 0), time(2, 0)),
@@ -170,20 +170,19 @@ class Ciclo_Semanal(Ciclo):
                 ph.SUPER_VAZIO: [
                     (time(2, 0), time(6, 0)),
                 ],
-            }, # Domingo
+            },  # Domingo
         },
     }
 
 
-
 class Ciclo_Diario(Ciclo):
-    """Ciclo diário continente (os períodos horários são iguais em todos os dias do ano) """
+    """Ciclo diário continente (os períodos horários são iguais em todos os dias do ano)"""
 
     diario = True
 
     def __str__(self) -> str:
         return "Ciclo Diário"
-    
+
     PERIODOS = {
         "Verão": {
             0: {
@@ -204,7 +203,7 @@ class Ciclo_Diario(Ciclo):
                 ph.SUPER_VAZIO: [
                     (time(2, 0), time(6, 0)),
                 ],
-            }   # Todos os dias da semana
+            }  # Todos os dias da semana
         },
         "Inverno": {
             0: {
@@ -225,12 +224,9 @@ class Ciclo_Diario(Ciclo):
                 ph.SUPER_VAZIO: [
                     (time(2, 0), time(6, 0)),
                 ],
-            }   # Todos os dias da semana
+            }  # Todos os dias da semana
         },
     }
-
-
-
 
 
 MAPPING = {str(Ciclo_Semanal()): Ciclo_Semanal, str(Ciclo_Diario()): Ciclo_Diario}

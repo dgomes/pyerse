@@ -1,9 +1,12 @@
 """Informação por comercializador."""
+
 import logging
+from datetime import datetime, time, timedelta
 from enum import Enum
-from datetime import datetime, timedelta, time, date
+
+from pyerse.ciclos import MAPPING as CYCLE_MAPPING
+from pyerse.ciclos import Ciclo, Ciclo_Diario, Ciclo_Semanal
 from pyerse.periodos_horarios import Periodos_Horarios
-from pyerse.ciclos import Ciclo, Ciclo_Diario, Ciclo_Semanal, MAPPING as CYCLE_MAPPING
 
 
 class Opcao_Horaria(str, Enum):
@@ -56,9 +59,7 @@ class PlanoException(Exception):
 class Plano:
     """Plano de Energia."""
 
-    def __init__(
-        self, potencia: float, opcao_horaria: Opcao_Horaria, ciclo: Ciclo = None
-    ):
+    def __init__(self, potencia: float, opcao_horaria: Opcao_Horaria, ciclo: Ciclo = None):
         """Inicialização do Plano."""
         self._potencia = potencia if potencia in POTENCIA else None
         self._opcao_horaria = opcao_horaria
@@ -72,7 +73,9 @@ class Plano:
 
     def __str__(self):
         """Representação textual do plano."""
-        return f"{self._potencia} kVA - {self._opcao_horaria} {self._ciclo() if self._ciclo else ''}"
+        return (
+            f"{self._potencia} kVA - {self._opcao_horaria} {self._ciclo() if self._ciclo else ''}"
+        )
 
     @property
     def potencia(self):
@@ -114,7 +117,6 @@ class Plano:
             elif periodo_actual == Periodos_Horarios.CHEIAS:
                 return Tarifa.CHEIAS
 
-
     def intervalo(self, now=None):
         """iterator sobre os Intervalos de tarifa."""
         if now is None:
@@ -133,18 +135,18 @@ class Plano:
             for start, stop in self._ciclo.iter_intervalo_periodo_horario(now):
                 new_tarifa = self.tarifa_actual(start)
                 if initial is None:
-                    initial = start #TODO devia andar para tras
+                    initial = start  # TODO devia andar para tras
 
                 if new_tarifa != current_tarifa and return_start is None:
                     if not current:
                         current = True
-                        yield initial, start              
+                        yield initial, start
                     return_start = start
                     current_tarifa = new_tarifa
 
                 if new_tarifa != current_tarifa and return_stop is None:
                     return_stop = start
-            
+
                     yield return_start, return_stop
 
                     current_tarifa = new_tarifa
@@ -235,9 +237,7 @@ class Plano:
             elif tarifa == Tarifa.VAZIO:
                 return desconto(60 if familia_numerosa else 40)
 
-    def custo_kWh_final(
-        self, tarifa: Tarifa, kwh_consumidos: float, familia_numerosa=False
-    ):
+    def custo_kWh_final(self, tarifa: Tarifa, kwh_consumidos: float, familia_numerosa=False):
         return (
             self.custo_kWh(tarifa, kwh_consumidos, familia_numerosa)
             + kwh_consumidos * IMPOSTO_ESPECIAL_CONSUMO * IVA_NORMAL
@@ -265,9 +265,7 @@ class Plano:
 class Comercializador:
     """Representação de um Comercializador."""
 
-    def __init__(
-        self, nome: str, potencia: float, horario: Opcao_Horaria, ciclo: str = None
-    ):
+    def __init__(self, nome: str, potencia: float, horario: Opcao_Horaria, ciclo: str = None):
         """Configuração de um plano para o comercializador."""
         self._name = nome
         self._plano = Plano(potencia, horario, CYCLE_MAPPING[ciclo])

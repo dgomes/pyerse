@@ -1,7 +1,7 @@
-from datetime import datetime
 import logging
-import requests
 from datetime import date, datetime
+
+import requests
 
 from pyerse.comercializador import POTENCIA
 
@@ -30,9 +30,9 @@ class Simulador:
 
     def _simular(self, ponta, cheias=None, vazio=None):
 
-        if vazio != None:
+        if vazio is not None:
             ciclo = "3"  # Tri-horário
-        elif cheias != None:
+        elif cheias is not None:
             ciclo = "2"  # Bi-horário
         else:
             ciclo = "1"  # Simples
@@ -69,55 +69,30 @@ class Simulador:
         logging.debug(result["Resultados"][0]["Oferta"][0])
 
         preco_ponta = (
-            float(
-                result["Resultados"][0]["Oferta"][0]["PrecoTermoenergia"].replace(
-                    ",", "."
-                )
-            )
+            float(result["Resultados"][0]["Oferta"][0]["PrecoTermoenergia"].replace(",", "."))
             * ponta
-            if result["Resultados"][0]["Oferta"][0]["PrecoTermoenergia"].replace(
-                ",", "."
-            )
-            != ""
+            if result["Resultados"][0]["Oferta"][0]["PrecoTermoenergia"].replace(",", ".") != ""
             else 0
         )
         preco_cheias = (
-            float(
-                result["Resultados"][0]["Oferta"][0]["PrecoTermoenergia2"].replace(
-                    ",", "."
-                )
-            )
+            float(result["Resultados"][0]["Oferta"][0]["PrecoTermoenergia2"].replace(",", "."))
             * cheias
-            if result["Resultados"][0]["Oferta"][0]["PrecoTermoenergia2"].replace(
-                ",", "."
-            )
-            != ""
+            if result["Resultados"][0]["Oferta"][0]["PrecoTermoenergia2"].replace(",", ".") != ""
             else 0
         )
         preco_vazio = (
-            float(
-                result["Resultados"][0]["Oferta"][0]["PrecoTermoenergia3"].replace(
-                    ",", "."
-                )
-            )
+            float(result["Resultados"][0]["Oferta"][0]["PrecoTermoenergia3"].replace(",", "."))
             * vazio
-            if result["Resultados"][0]["Oferta"][0]["PrecoTermoenergia3"].replace(
-                ",", "."
-            )
-            != ""
+            if result["Resultados"][0]["Oferta"][0]["PrecoTermoenergia3"].replace(",", ".") != ""
             else 0
         )
-        preco_fixo = float(
-            result["Resultados"][0]["Oferta"][0]["PrecoTermoFixo"].replace(",", ".")
-        )
+        preco_fixo = float(result["Resultados"][0]["Oferta"][0]["PrecoTermoFixo"].replace(",", "."))
 
         periodo = datetime.strptime(self._period_stop, "%Y-%m-%d") - datetime.strptime(
             self._period_start, "%Y-%m-%d"
         )
 
-        estimativa = (
-            preco_ponta + preco_cheias + preco_vazio + preco_fixo * periodo.days
-        )
+        estimativa = preco_ponta + preco_cheias + preco_vazio + preco_fixo * periodo.days
 
         return (
             f"{result['Resultados'][0]['Oferta'][0]['Comercializador']} - {result['Resultados'][0]['Oferta'][0]['Nome']}",
