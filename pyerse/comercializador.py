@@ -3,9 +3,10 @@
 import logging
 from datetime import datetime, time, timedelta
 from enum import Enum
+from zoneinfo import ZoneInfo
 
 from pyerse.ciclos import MAPPING as CYCLE_MAPPING
-from pyerse.ciclos import Ciclo, Ciclo_Diario, Ciclo_Semanal
+from pyerse.ciclos import Ciclo
 from pyerse.periodos_horarios import Periodos_Horarios
 
 
@@ -66,7 +67,7 @@ class Plano:
         if opcao_horaria != Opcao_Horaria.SIMPLES and ciclo is None:
             raise PlanoException("Ciclo não definido")
 
-        if ciclo and ciclo not in [Ciclo_Diario, Ciclo_Semanal]:
+        if ciclo and not (isinstance(ciclo, type) and issubclass(ciclo, Ciclo)):
             ciclo = CYCLE_MAPPING[ciclo]
         self._ciclo = ciclo
         self._custo = {}
@@ -94,7 +95,11 @@ class Plano:
     def tarifa_actual(self, now=None):
         """Tarifa actual."""
         if now is None:
-            now = datetime.now()
+            now = (
+                datetime.now(ZoneInfo(self._ciclo.timezone))
+                if self._ciclo and hasattr(self._ciclo, "timezone")
+                else datetime.now()
+            )
 
         if self._opcao_horaria == Opcao_Horaria.SIMPLES:
             return Tarifa.NORMAL
@@ -120,7 +125,11 @@ class Plano:
     def intervalo(self, now=None):
         """iterator sobre os Intervalos de tarifa."""
         if now is None:
-            now = datetime.now()
+            now = (
+                datetime.now(ZoneInfo(self._ciclo.timezone))
+                if self._ciclo and hasattr(self._ciclo, "timezone")
+                else datetime.now()
+            )
 
         if self._opcao_horaria == Opcao_Horaria.SIMPLES:
             datetime_start = datetime.combine(now, time(0, 0)) + timedelta(days=1)

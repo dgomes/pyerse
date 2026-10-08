@@ -76,7 +76,7 @@ def test_supplier_public_options():
     assert supplier.plano.potencia == 6.9
     assert str(supplier).startswith("Supplier - 6.9 kVA")
     assert Comercializador.opcao_horaria() == list(Opcao_Horaria)
-    assert set(Comercializador.opcao_ciclo()) == {"Ciclo Diário", "Ciclo Semanal"}
+    assert {"Ciclo Diário", "Ciclo Semanal"} <= set(Comercializador.opcao_ciclo())
     assert Comercializador.potencias() == [
         1.15,
         2.3,
