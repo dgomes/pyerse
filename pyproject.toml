@@ -27,7 +27,7 @@ Issues = "https://github.com/dgomes/pyerse/issues"
 
 [project.optional-dependencies]
 test = ["pytest>=8.3", "freezegun>=1.5", "pytest-cov>=6"]
-dev = ["pyerse[test]", "ruff>=0.11", "build>=1.2", "twine>=6"]
+dev = ["pyerse[test]", "ruff==0.16.10", "pre-commit>=4.3,<5", "build>=1.2", "twine>=6"]
 
 [tool.setuptools.dynamic]
 version = {file = "VERSION"}

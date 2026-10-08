@@ -16,6 +16,8 @@ python -m pip install pyerse
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e ".[dev]"
+pre-commit install
+pre-commit run --all-files
 ruff check .
 ruff format --check .
 python -m pytest
@@ -23,6 +25,12 @@ python -m pytest --cov=pyerse --cov-branch --cov-report=term-missing --cov-fail-
 python -m build
 python -m twine check --strict dist/*
 ```
+
+The installed pre-commit hook runs Ruff lint fixes and formatting before each
+commit. Run `pre-commit run --all-files` to check the whole tracked repository;
+Ruff and its hooks use the same pinned version as CI. Hooks may edit files;
+review and stage those edits before committing. New files must be staged to be
+included in pre-commit checks.
 
 Use `ruff format .` to format code. CI checks Python 3.11–3.14 and builds both
 a source distribution and a wheel, then tests the installed wheel outside the
@@ -74,9 +82,7 @@ Without `total_kwh`, the supplied tariff consumption is treated as the total;
 that default is appropriate for single-tariff plans.
 
 ```python
-cost = plan.custo_kWh_final(
-    tariff, kwh_consumidos=98, total_kwh=350, dias=30
-)
+cost = plan.custo_kWh_final(tariff, kwh_consumidos=98, total_kwh=350, dias=30)
 ```
 
 The same keyword arguments are accepted by `custo_kWh` and

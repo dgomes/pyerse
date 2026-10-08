@@ -184,8 +184,12 @@ class Plano:
         return (300 if familia_numerosa else 200) * dias / 30
 
     def custo_kWh_actual(
-        self, kwh_consumidos: float, familia_numerosa=False, *,
-        total_kwh: float | None = None, dias=30,
+        self,
+        kwh_consumidos: float,
+        familia_numerosa=False,
+        *,
+        total_kwh: float | None = None,
+        dias=30,
     ):
         """Preço marginal com IVA, segundo as regras de janeiro de 2025.
 
@@ -203,8 +207,13 @@ class Plano:
         return custo_kwh * iva
 
     def custo_kWh(
-        self, tarifa: Tarifa, kwh_consumidos: float, familia_numerosa=False, *,
-        total_kwh: float | None = None, dias=30,
+        self,
+        tarifa: Tarifa,
+        kwh_consumidos: float,
+        familia_numerosa=False,
+        *,
+        total_kwh: float | None = None,
+        dias=30,
     ):
         """Custo da energia com IVA, segundo as regras de janeiro de 2025.
 
@@ -228,14 +237,17 @@ class Plano:
         )
 
     def custo_kWh_final(
-        self, tarifa: Tarifa, kwh_consumidos: float, familia_numerosa=False, *,
-        total_kwh: float | None = None, dias=30,
+        self,
+        tarifa: Tarifa,
+        kwh_consumidos: float,
+        familia_numerosa=False,
+        *,
+        total_kwh: float | None = None,
+        dias=30,
     ):
         """Custo com IVA e imposto especial de consumo (IEC)."""
         return (
-            self.custo_kWh(
-                tarifa, kwh_consumidos, familia_numerosa, total_kwh=total_kwh, dias=dias
-            )
+            self.custo_kWh(tarifa, kwh_consumidos, familia_numerosa, total_kwh=total_kwh, dias=dias)
             + kwh_consumidos * IMPOSTO_ESPECIAL_CONSUMO * IVA_NORMAL
         )
 
